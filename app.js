@@ -100,6 +100,10 @@ app.get("/:customListName", function (req, res) {
         });
         list.save();
         res.redirect(listName);
+      } else if (foundList.items.length === 0) {
+        foundList.items.push(...defaultItems);
+        foundList.save();
+        res.redirect(listName);
       } else {
         res.render(__dirname + "/views/list.ejs", {
           day,
@@ -135,9 +139,13 @@ app.post("/delete", function (req, res) {
   const list = req.body.list;
   const id = req.body.id;
 
-  List.findOneAndUpdate({ name: list }, { $pull: { items: {_id: id} } }, function (err) {
-    if (err) return handleError(err);
-  });
+  List.findOneAndUpdate(
+    { name: list },
+    { $pull: { items: { _id: id } } },
+    function (err) {
+      if (err) return handleError(err);
+    }
+  );
 
   res.redirect(list);
 });
@@ -146,7 +154,6 @@ app.post("/delete", function (req, res) {
 app.post("/dateSelector", function (req, res) {
   const selectedDate = req.body.selectedDate;
   if (selectedDate) {
-    console.log(selectedDate);
   }
   res.redirect(selectedDate);
 });
