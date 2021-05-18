@@ -6,9 +6,12 @@ const getDate = () => {
     month: "long",
   };
 
+  const isoDate = new Date().toISOString().slice(0,10)
+
   return {
     day: today.toLocaleString("en-US", options),
     year: today.getFullYear(),
+    isoDate
   };
 }
 

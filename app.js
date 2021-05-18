@@ -10,6 +10,10 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("views"));
 
+const day = date.day;
+const year = date.year;
+const today = date.isoDate;
+
 /* Connect to DB */
 mongoose.connect(
   "mongodb+srv://dbUser:wvZgFr4sjSPLKcF@cluster0.3tlyb.mongodb.net/todoDb",
@@ -23,67 +27,128 @@ mongoose.connect(
 const itemSchema = new mongoose.Schema({
   content: String,
 });
-
 const Item = mongoose.model("Item", itemSchema);
 
+const listSchema = {
+  name: String,
+  items: [itemSchema],
+};
+
+const List = mongoose.model("List", listSchema);
+
 // Create Items
-
 const item1 = new Item({
-  content: "Welcome to your To Do List!",
+  content: "Welcome to your list for the selected day",
 });
-
 const item2 = new Item({
-  content: "Hit the + button to add a new item.",
+  content: "You can pick another day with the date picker",
 });
-
 const item3 = new Item({
-  content: "<-- Hit this to strikeoff an item.",
+  content: "Hit the + button to add a new item",
 });
-
 const item4 = new Item({
-  content: "Hit this to delete an item. -->",
+  content: "<-- Hit this to strikeoff an item",
+});
+const item5 = new Item({
+  content: "Hit this to delete an item -->",
 });
 
-const defaultItems = [item1, item2, item3, item4];
+const defaultItems = [item1, item2, item3, item4, item5];
 
 // Output
 app.get("/", function (req, res) {
-  const day = date.day;
-  const year = date.year;
-
-  Item.find(function (err, list) {
-    if (err) {
-      console.log(err);
-    } else {
-      if (list.length === 0) {
-        Item.insertMany(defaultItems);
+  const listName = today;
+  let title = listName;
+  if (listName === today) {
+    title = "Today";
+  }
+  List.findOne({ name: listName }, function (err, foundList) {
+    if (!err) {
+      if (!foundList) {
+        const list = new List({
+          name: listName,
+          items: defaultItems,
+        });
+        list.save();
+        res.redirect(listName);
+      } else {
+        res.render(__dirname + "/views/list.ejs", {
+          day,
+          listItems: foundList.items,
+          year,
+          selectedDate: listName,
+          title,
+        });
       }
-      res.render(__dirname + "/views/list.ejs", { day, list, year });
+    }
+  });
+});
+
+// Custom Lists
+app.get("/:customListName", function (req, res) {
+  const listName = req.params.customListName;
+  let title = listName;
+  if (listName === today) {
+    title = "Today";
+  }
+  List.findOne({ name: listName }, function (err, foundList) {
+    if (!err) {
+      if (!foundList) {
+        const list = new List({
+          name: listName,
+          items: defaultItems,
+        });
+        list.save();
+        res.redirect(listName);
+      } else {
+        res.render(__dirname + "/views/list.ejs", {
+          day,
+          listItems: foundList.items,
+          year,
+          selectedDate: listName,
+          title,
+        });
+      }
     }
   });
 });
 
 // Post
 app.post("/", function (req, res) {
-  const content = req.body.item;
-  if (content) {
-    const item = new Item({ content });
+  const list = req.body.list;
+  const item = new Item({ content: req.body.item });
+
+  if (!list) {
     item.save();
+    res.redirect("/");
+  } else {
+    List.findOne({ name: list }, function (err, foundList) {
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect(list);
+    });
   }
-  // Send the response to the browser
-  res.redirect("/");
 });
 
 // Delete
 app.post("/delete", function (req, res) {
+  const list = req.body.list;
   const id = req.body.id;
-  if (id) {
-    Item.deleteOne({ _id: id }, function (err) {
-      if (err) return handleError(err);
-    });
+
+  List.findOneAndUpdate({ name: list }, { $pull: { items: {_id: id} } }, function (err) {
+    if (err) return handleError(err);
+  });
+
+  res.redirect(list);
+});
+
+// Date Selector
+app.post("/dateSelector", function (req, res) {
+  const selectedDate = req.body.selectedDate;
+  if (selectedDate) {
+    console.log(selectedDate);
   }
-  // Send the response to the browser
-  res.redirect("/");
+  res.redirect(selectedDate);
 });
 
 //Mount Page
