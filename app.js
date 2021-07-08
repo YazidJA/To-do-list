@@ -1,4 +1,5 @@
 // Initialize Node App
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
@@ -16,7 +17,7 @@ const today = date.isoDate;
 
 /* Connect to DB */
 mongoose.connect(
-  "mongodb+srv://dbUser:wvZgFr4sjSPLKcF@cluster0.3tlyb.mongodb.net/todoDb",
+  process.env.DATABASE,
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
